@@ -1,50 +1,56 @@
-#include <ESP8266WiFi.h>   // Library for Wi-Fi
-#include <SPI.h>           // Library for SPI communication
-#include <MFRC522.h>       // Library for RFID
+#include <SPI.h>
+#include <MFRC522.h>
 
-// Wi-Fi credentials
-#define WIFI_SSID "TESTNET"
-#define WIFI_PASSWORD "India@123"
-
-
-// Firebase setup (add these if needed later)
-#define FIREBASE_HOST "https://esp8266-1e5b0-default-rtdb.firebaseio.com/"
-#define FIREBASE_AUTH "GUgDc9XQaeObaNRaF5tRCCtM7MPiF7x96Qf2BS6f"
-// FirebaseData firebaseData;
-
-// RFID Configuration
-#define RST_PIN D1         // Reset pin for MFRC522 (connect to D1 on NodeMCU)
-#define SS_PIN D2          // Slave Select (SS) pin for MFRC522 (connect to D2 on NodeMCU)
-
-// Create MFRC522 instance
+// RFID configuration
+#define RST_PIN D1
+#define SS_PIN D2
 MFRC522 rfid(SS_PIN, RST_PIN);
 
+// LED configuration
+#define LED_PIN1 D3 // LED pin 1
+#define LED_PIN2 D8 // LED pin 2
+
 void setup() {
-  Serial.begin(115200);  // Initialize serial communication
-  SPI.begin();           // Initialize SPI bus for RFID reader
-  rfid.PCD_Init();       // Initialize RFID reader
+  Serial.begin(115200);
+
+  // Initialize SPI and RFID
+  SPI.begin();
+  rfid.PCD_Init();
+
+  // Set up LED pins
+  pinMode(LED_PIN1, OUTPUT);
+  pinMode(LED_PIN2, OUTPUT);
+  digitalWrite(LED_PIN1, LOW); // Turn off LEDs initially
+  digitalWrite(LED_PIN2, LOW);
 }
-  
 
 void loop() {
-  // Look for new RFID cards
+  // Check for new RFID card
   if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
     delay(50);
     return;
   }
 
-  // Print UID of the RFID tag
-  Serial.print("RFID Tag UID: ");
+  // Read the RFID UID and store it as a string
+  String uid = "";
   for (byte i = 0; i < rfid.uid.size; i++) {
-    Serial.print(rfid.uid.uidByte[i] < 0x10 ? "0" : "");
-    Serial.print(rfid.uid.uidByte[i], HEX);
-    Serial.print(" ");
+    uid += String(rfid.uid.uidByte[i] < 0x10 ? "0" : ""); // Add leading zero if needed
+    uid += String(rfid.uid.uidByte[i], HEX);
   }
-  Serial.println();
 
-  // String rfidTagUID = "";  // Variable to store the UID as a string
+  Serial.print("UID: ");
+  Serial.println(uid);
 
-  // Halt PICC to stop reading additional tags
+  // Blink LEDs as feedback for successful scan
+  digitalWrite(LED_PIN1, HIGH);
+  delay(300);  // LED on duration
+  digitalWrite(LED_PIN1, LOW);
+
+  digitalWrite(LED_PIN2, HIGH);
+  delay(300);
+  digitalWrite(LED_PIN2, LOW);
+
+  // Halt PICC to allow a new reading
   rfid.PICC_HaltA();
-  delay(1000);  // Delay for readability
+  delay(1000); // Wait before the next read
 }
