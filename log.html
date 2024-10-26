@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Input to Table</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding-top: 10vh;
+            padding-bottom: 10vh;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-image: url('https://srmap.edu.in/file/2017/03/1.jpg');
+            background-size: cover;
+            background-position: center;
+            backdrop-filter: blur(5px);
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        input[type="text"], button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            width: calc(100% - 130px);
+            max-width: 500px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #334a22;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2a3a1b;
+        }
+        .clear-button {
+            background-color: #a83232;
+        }
+        .clear-button:hover {
+            background-color: #8a2828;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+        th {
+            background-color: #334a22;
+            color: white;
+            font-weight: 500;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RFID Input Example</h1>
+        <input type="text" id="rfid-input" placeholder="Scan RFID tag here" autofocus />
+        <button id="search-button">Search</button>
+        <button class="clear-button" onclick="clearAllData()">Clear All Data</button>
+
+        <table id="rfid-table">
+            <thead>
+                <tr>
+                    <th>RFID Tag</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- New rows will be added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const inputField = document.getElementById('rfid-input');
+        const tableBody = document.getElementById('rfid-table').querySelector('tbody');
+
+        // Load existing data from localStorage
+        function loadStoredData() {
+            const storedData = JSON.parse(localStorage.getItem('rfidLogs')) || [];
+            storedData.forEach(data => addRow(data.rfidTag, data.name, data.status, data.timestamp));
+        }
+
+        // Clear all localStorage data
+        function clearAllData() {
+            if (confirm("Are you sure you want to clear all data?")) {
+                localStorage.removeItem('rfidLogs'); // Clear local storage
+                refreshTable([]); // Refresh the table with empty data
+            }
+        }
+
+        // Handle RFID input
+        inputField.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (inputField.value) {
+                    const rfidTag = inputField.value.trim();
+                    const timestamp = new Date().toLocaleString();
+                    toggleStatus(rfidTag, timestamp);
+                    inputField.value = ''; // Clear input field
+                } else {
+                    alert("Please scan a valid RFID tag.");
+                }
+            }
+        });
+
+        // Search for an RFID tag
+        document.getElementById('search-button').addEventListener('click', () => {
+            const searchTag = inputField.value.trim();
+            if (searchTag) {
+                const storedData = JSON.parse(localStorage.getItem('rfidLogs')) || [];
+                const entry = storedData.find(data => data.rfidTag === searchTag);
+                if (entry) {
+                    alert(`Found entry: Name - ${entry.name}, Status - ${entry.status}, Last Updated - ${entry.timestamp}`);
+                } else {
+                    alert("No entry found for the given RFID tag.");
+                }
+            }
+        });
+
+        function toggleStatus(rfidTag, timestamp) {
+            const storedData = JSON.parse(localStorage.getItem('rfidLogs')) || [];
+            const existingIndex = storedData.findIndex(data => data.rfidTag === rfidTag);
+
+            if (existingIndex > -1) {
+                // Toggle status if the entry exists
+                const currentStatus = storedData[existingIndex].status;
+                const newStatus = currentStatus === 'In lab' ? 'At hostel' : 'In lab';
+                storedData[existingIndex].status = newStatus;
+                storedData[existingIndex].timestamp = timestamp; // Update timestamp
+            } else {
+                // Prompt for name if the entry is new
+                const name = prompt("Enter name for new RFID tag:");
+                if (name) {
+                    storedData.push({ rfidTag, name, status: 'In lab', timestamp });
+                }
+            }
+
+            // Update localStorage and refresh table
+            localStorage.setItem('rfidLogs', JSON.stringify(storedData));
+            refreshTable(storedData);
+        }
+
+        function addRow(rfidTag, name, status, timestamp) {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `<td>${rfidTag}</td><td>${name}</td><td>${status}</td><td>${timestamp}</td>`;
+            tableBody.appendChild(newRow);
+        }
+
+        function refreshTable(data) {
+            tableBody.innerHTML = ''; // Clear existing table rows
+            data.forEach(entry => addRow(entry.rfidTag, entry.name, entry.status, entry.timestamp));
+        }
+
+        // Load stored data on page load
+        loadStoredData();
+    </script>
+</body>
+</html>

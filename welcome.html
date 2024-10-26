@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Logs</title>
+    <link rel="stylesheet" href="welcome.css">
+    <link rel="icon" href="https://th.bing.com/th/id/OIP._d6mDgP-Cnm-GYKXsiD8uwAAAA?w=135&h=150&c=7&r=0&o=5&dpr=1.3&pid=1.7">
+</head>
+<body>
+
+    <div class="container">
+        <h2>Student Log Entries</h2>
+        
+        <button onclick="filterLogs('In lab')">Show Students In Lab</button>
+        <button onclick="filterLogs('At hostel')">Show Students At Hostel</button>
+        <button onclick="resetFilter()">Show All</button>
+        
+        <table id="logs-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>RFID Tag</th>
+                    <th>Name</th> <!-- New Name Column -->
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function fetchRFIDLogs() {
+            const rfidLogs = JSON.parse(localStorage.getItem('rfidLogs')) || [];
+            populateTable(rfidLogs);
+        }
+
+        function populateTable(data) {
+            const tbody = document.querySelector('#logs-table tbody');
+            tbody.innerHTML = ''; // Clear existing table rows
+
+            data.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${index + 1}</td><td>${entry.rfidTag}</td><td>${entry.name || 'N/A'}</td><td>${entry.status}</td><td>${entry.timestamp}</td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterLogs(status) {
+            const rows = document.querySelectorAll('#logs-table tbody tr');
+            let serialNumber = 1; // Initialize serial number
+            rows.forEach((row) => {
+                const cellStatus = row.cells[3].textContent; // Status is in the 4th column
+                if (cellStatus === status) {
+                    row.style.display = '';
+                    row.cells[0].textContent = serialNumber++; // Update serial number
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function resetFilter() {
+            const rows = document.querySelectorAll('#logs-table tbody tr');
+            let serialNumber = 1; // Initialize serial number
+            rows.forEach(row => {
+                row.style.display = '';
+                row.cells[0].textContent = serialNumber++; // Update serial number
+            });
+        }
+
+        function addOrUpdateLog(rfidTag) {
+            let rfidLogs = JSON.parse(localStorage.getItem('rfidLogs')) || [];
+            const timestamp = new Date().toLocaleString();
+            let entry = rfidLogs.find(data => data.rfidTag === rfidTag);
+
+            if (entry) {
+                // Toggle status and update timestamp for an existing entry
+                entry.status = entry.status === 'In lab' ? 'At hostel' : 'In lab';
+                entry.timestamp = timestamp;
+            } else {
+                // If RFID tag is new, prompt for the name
+                const name = prompt("New RFID tag detected! Please enter the student's name:");
+                if (name) {
+                    rfidLogs.push({ rfidTag, name, status: 'In lab', timestamp });
+                } else {
+                    alert("Name is required to register a new RFID tag.");
+                    return; // Stop if no name is provided
+                }
+            }
+
+            // Save updated logs to localStorage and refresh table
+            localStorage.setItem('rfidLogs', JSON.stringify(rfidLogs));
+            populateTable(rfidLogs);
+        }
+
+        // Event listener for storage change
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'rfidLogs') {
+                fetchRFIDLogs();
+            }
+        });
+
+        // Initial fetch of data
+        fetchRFIDLogs();
+    </script>
+</body>
+</html>
